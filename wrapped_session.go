@@ -30,7 +30,7 @@ type WrappedSession struct {
 var _ mongo.Session = (*WrappedSession)(nil)
 
 func (ws *WrappedSession) EndSession(ctx context.Context) {
-	ctx, span := roundtripTrackingSpan(ctx, "go.mongodb.org/mongo-driver.Session.EndSession")
+	ctx, span := roundtripTrackingSpan(ctx, "Session.EndSession")
 	defer span.end(ctx)
 
 	ws.Session.EndSession(ctx)
@@ -41,7 +41,7 @@ func (ws *WrappedSession) StartTransaction(topts ...*options.TransactionOptions)
 }
 
 func (ws *WrappedSession) AbortTransaction(ctx context.Context) error {
-	ctx, span := roundtripTrackingSpan(ctx, "go.mongodb.org/mongo-driver.Session.AbortTransaction")
+	ctx, span := roundtripTrackingSpan(ctx, "Session.AbortTransaction")
 	defer span.end(ctx)
 
 	err := ws.Session.AbortTransaction(ctx)
@@ -52,7 +52,7 @@ func (ws *WrappedSession) AbortTransaction(ctx context.Context) error {
 }
 
 func (ws *WrappedSession) CommitTransaction(ctx context.Context) error {
-	ctx, span := roundtripTrackingSpan(ctx, "go.mongodb.org/mongo-driver.Session.CommitTransaction")
+	ctx, span := roundtripTrackingSpan(ctx, "Session.CommitTransaction")
 	defer span.end(ctx)
 
 	err := ws.Session.CommitTransaction(ctx)
@@ -76,4 +76,12 @@ func (ws *WrappedSession) OperationTime() *primitive.Timestamp {
 
 func (ws *WrappedSession) AdvanceOperationTime(pt *primitive.Timestamp) error {
 	return ws.Session.AdvanceOperationTime(pt)
+}
+
+func (ws *WrappedSession) Client() *mongo.Client {
+	return ws.Session.Client()
+}
+
+func (ws *WrappedSession) WithTransaction(ctx context.Context, fn func(sessCtx mongo.SessionContext) (interface{}, error), opts ...*options.TransactionOptions) (interface{}, error) {
+	return ws.Session.WithTransaction(ctx, fn, opts...)
 }

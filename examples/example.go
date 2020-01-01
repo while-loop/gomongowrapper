@@ -12,47 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mongowrapper_test
+package main
 
 import (
 	"context"
-	"log"
-	"time"
-
-	"go.mongodb.org/mongo-driver/mongo/options"
-
+	"github.com/while-loop/gomongowrapper"
 	"go.mongodb.org/mongo-driver/bson"
-
-	mongowrapper "github.com/opencensus-integrations/gomongowrapper"
-
-	"contrib.go.opencensus.io/exporter/stackdriver"
-	"go.opencensus.io/stats/view"
-	"go.opencensus.io/trace"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.opentelemetry.io/otel/api/global"
+	"go.opentelemetry.io/otel/exporter/trace/stdout"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"log"
 )
 
-func Example() {
-	// Enabling the OpenCensus exporter.
+func main() {
+	// Enabling the OpenTelemetry exporter.
 	// Just using Stackdriver since it has both Tracing and Metrics
 	// and is easy to whip up. Add your desired one here.
-	sde, err := stackdriver.NewExporter(stackdriver.Options{
-		ProjectID:    "census-demos",
-		MetricPrefix: "mongosample",
-	})
-	if err != nil {
-		log.Fatalf("Failed to create Stackdriver exporter: %v", err)
-	}
-	view.RegisterExporter(sde)
-	trace.RegisterExporter(sde)
-	if err := mongowrapper.RegisterAllViews(); err != nil {
-		log.Fatalf("Failed to register all views: %v\n", err)
-	}
+	InitTracer()
 
-	defer func() {
-		<-time.After(2 * time.Minute)
-	}()
+	tracer := global.TraceProvider().Tracer("example-tracer")
 
 	// Start a span like your application would start one.
-	ctx, span := trace.StartSpan(context.Background(), "Fetch", trace.WithSampler(trace.AlwaysSample()))
+	ctx, span := tracer.Start(context.Background(), "Fetch")
 	defer span.End()
 
 	// Now for the mongo connections, using the context
@@ -87,4 +69,17 @@ func Example() {
 	if err != nil {
 		log.Fatalf("Failed to delete: %v", err)
 	}
+}
+
+func InitTracer() {
+	ex, err := stdout.NewExporter(stdout.Options{PrettyPrint: true})
+	if err != nil {
+		log.Fatalf("Failed to create exporter: %v", err)
+	}
+	tp, err := sdktrace.NewProvider(
+		sdktrace.WithConfig(sdktrace.Config{DefaultSampler: sdktrace.AlwaysSample()}),
+		sdktrace.WithSyncer(ex),
+	)
+
+	global.SetTraceProvider(tp)
 }

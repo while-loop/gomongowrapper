@@ -16,7 +16,6 @@ package mongowrapper
 
 import (
 	"context"
-
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -35,7 +34,7 @@ func NewClient(opts ...*options.ClientOptions) (*WrappedClient, error) {
 }
 
 func (wc *WrappedClient) Connect(ctx context.Context) error {
-	ctx, span := roundtripTrackingSpan(ctx, "go.mongodb.org/mongo-driver.Client.Connect")
+	ctx, span := roundtripTrackingSpan(ctx, "Client.Connect")
 	defer span.end(ctx)
 
 	err := wc.cc.Connect(ctx)
@@ -54,7 +53,7 @@ func (wc *WrappedClient) Database(name string, opts ...*options.DatabaseOptions)
 }
 
 func (wc *WrappedClient) Disconnect(ctx context.Context) error {
-	ctx, span := roundtripTrackingSpan(ctx, "go.mongodb.org/mongo-driver.Client.Disconnect")
+	ctx, span := roundtripTrackingSpan(ctx, "Client.Disconnect")
 	defer span.end(ctx)
 
 	err := wc.cc.Disconnect(ctx)
@@ -65,7 +64,7 @@ func (wc *WrappedClient) Disconnect(ctx context.Context) error {
 }
 
 func (wc *WrappedClient) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) ([]string, error) {
-	ctx, span := roundtripTrackingSpan(ctx, "go.mongodb.org/mongo-driver.Client.ListDatabaseNames")
+	ctx, span := roundtripTrackingSpan(ctx, "Client.ListDatabaseNames")
 	defer span.end(ctx)
 
 	dbs, err := wc.cc.ListDatabaseNames(ctx, filter, opts...)
@@ -76,7 +75,7 @@ func (wc *WrappedClient) ListDatabaseNames(ctx context.Context, filter interface
 }
 
 func (wc *WrappedClient) ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (mongo.ListDatabasesResult, error) {
-	ctx, span := roundtripTrackingSpan(ctx, "go.mongodb.org/mongo-driver.Client.ListDatabases")
+	ctx, span := roundtripTrackingSpan(ctx, "Client.ListDatabases")
 	defer span.end(ctx)
 
 	dbr, err := wc.cc.ListDatabases(ctx, filter, opts...)
@@ -86,8 +85,12 @@ func (wc *WrappedClient) ListDatabases(ctx context.Context, filter interface{}, 
 	return dbr, err
 }
 
+func (wc *WrappedClient) NumberSessionsInProgress() int {
+	return wc.cc.NumberSessionsInProgress()
+}
+
 func (wc *WrappedClient) Ping(ctx context.Context, rp *readpref.ReadPref) error {
-	ctx, span := roundtripTrackingSpan(ctx, "go.mongodb.org/mongo-driver.Client.Ping")
+	ctx, span := roundtripTrackingSpan(ctx, "Client.Ping")
 	defer span.end(ctx)
 
 	err := wc.cc.Ping(ctx, rp)
@@ -111,6 +114,17 @@ func (wc *WrappedClient) UseSession(ctx context.Context, fn func(mongo.SessionCo
 
 func (wc *WrappedClient) UseSessionWithOptions(ctx context.Context, opts *options.SessionOptions, fn func(mongo.SessionContext) error) error {
 	return wc.cc.UseSessionWithOptions(ctx, opts, fn)
+}
+
+func (wc *WrappedClient) Watch(ctx context.Context, pipeline interface{}, opts ...*options.ChangeStreamOptions) (*mongo.ChangeStream, error) {
+	ctx, span := roundtripTrackingSpan(ctx, "Client.Watch")
+	defer span.end(ctx)
+
+	cs, err := wc.cc.Watch(ctx, pipeline, opts...)
+	if err != nil {
+		span.setError(err)
+	}
+	return cs, err
 }
 
 func (wc *WrappedClient) Client() *mongo.Client { return wc.cc }

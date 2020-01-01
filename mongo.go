@@ -22,7 +22,7 @@ import (
 )
 
 func Connect(ctx context.Context, opts ...*options.ClientOptions) (*WrappedClient, error) {
-	ctx, span := roundtripTrackingSpan(ctx, "go.mongodb.org/mongo-driver.Connect")
+	ctx, span := roundtripTrackingSpan(ctx, "Connect")
 	defer span.end(ctx)
 
 	cc, err := mongo.NewClient(opts...)
